@@ -1,0 +1,392 @@
+Sub ProcessaDados()
+
+    Call LimpaDados
+    Call PreencheCamposFatura
+    Call OrdenaColuna1
+    Call CopiaFaturas
+    Call OrdenaColuna2
+    Call EncontrarSegundaLinhaVisivel
+    Call Organizacao
+    Call SegmentaDados
+    MsgBox "Finalizado"
+    
+End Sub
+Sub LimpaDados()
+
+    Worksheets(2).Cells.Clear
+    Worksheets(3).Cells.Clear
+    Worksheets(4).Cells.Clear
+
+End Sub
+
+
+Sub PreencheCamposFatura()
+
+    Set w1 = ThisWorkbook.Sheets(1)
+    
+    w1.Activate
+    Row1 = 2
+    Row2 = 3
+    valorAplicado = ""
+    dataPagamento = ""
+    pagamentoAplicado = ""
+    Anterior = Cells(Row1, 1)
+    Proximo = Cells(Row2, 1)
+
+While w1.Cells(Row2, 1) <> ""
+    
+    If w1.Cells(Row1, 16) = "*" Then
+        pagamentoAplicado = w1.Cells(Row1, 12)
+        valorAplicado = w1.Cells(Row1, 13)
+        dataPagamento = w1.Cells(Row1, 14)
+        w1.Cells(Row2, 12) = pagamentoAplicado
+        w1.Cells(Row2, 13) = valorAplicado
+        w1.Cells(Row2, 14) = dataPagamento
+        w1.Cells(Row1, 6) = "Cabeçalho"
+        Row1 = Row1 + 1
+        Row2 = Row2 + 1
+        Anterior = Cells(Row1, 1)
+        Proximo = Cells(Row2, 1)
+    Else
+        w1.Cells(Row2, 12) = pagamentoAplicado
+        w1.Cells(Row2, 13) = valorAplicado
+        w1.Cells(Row2, 14) = dataPagamento
+        Row1 = Row1 + 1
+        Row2 = Row2 + 1
+        Anterior = Cells(Row1, 1)
+        Proximo = Cells(Row2, 1)
+    End If
+    While Anterior = Proximo
+        w1.Cells(Row2, 12) = pagamentoAplicado
+        w1.Cells(Row2, 13) = valorAplicado
+        w1.Cells(Row2, 14) = dataPagamento
+        Row1 = Row1 + 1
+        Row2 = Row2 + 1
+        Anterior = Cells(Row1, 1)
+        Proximo = Cells(Row2, 1)
+    Wend
+        Row1 = Row1 + 1
+        Row2 = Row2 + 1
+        Anterior = Cells(Row1, 1)
+        Proximo = Cells(Row2, 1)
+Wend
+
+
+End Sub
+
+
+Sub OrdenaColuna1()
+
+    If ActiveSheet.AutoFilterMode Then
+        ActiveSheet.AutoFilterMode = False
+    End If
+
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets("01-Dados")
+    ws.Activate
+
+    With ws.Sort
+        .SortFields.Clear
+        .SortFields.Add Key:=ws.Range("P2:P1048576"), Order:=xlAscending
+        .SetRange ws.Range("A2:T1048576")
+        .Header = x1Yes '
+        .Apply
+    End With
+
+
+    If ActiveSheet.AutoFilterMode Then
+        ActiveSheet.AutoFilterMode = False
+    End If
+    
+
+    Dim faixa As Range
+    Set faixa = ActiveSheet.Range("A1:T1048576")
+
+
+    faixa.AutoFilter Field:=12, _
+                 Criteria1:="Fatura #*", _
+                 Operator:=xlOr, _
+                 Criteria2:="Relatório de despesas #*"
+
+
+
+End Sub
+
+Sub CopiaFaturas()
+
+    Dim rngOrigem As Range, rngDestino As Range
+    Dim wsDestino As Worksheet
+
+    ' Define a segunda aba como destino
+    Set wsDestino = ThisWorkbook.Sheets(2)
+
+    ' Evita erro se não houver células não vazias na coluna A
+    On Error Resume Next
+    Set rngOrigem = Columns("P:P").SpecialCells(xlCellTypeConstants)
+    On Error GoTo 0 ' Restaura o tratamento normal de erros
+
+    ' Se houver células não vazias, faz a cópia
+    If Not rngOrigem Is Nothing Then
+        Set rngDestino = wsDestino.Range("A1") ' Destino na aba 2, célula B1
+        rngOrigem.Copy
+        rngDestino.PasteSpecial Paste:=xlPasteValues
+        Application.CutCopyMode = False
+    Else
+        MsgBox "Não há valores para copiar na coluna A.", vbInformation
+    End If
+    
+    If ActiveSheet.AutoFilterMode Then
+        ActiveSheet.AutoFilterMode = False
+    End If
+
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets("01-Dados")
+    ws.Activate
+
+    With ws.Sort
+        .SortFields.Clear
+        .SortFields.Add Key:=ws.Range("A2:A1048576"), Order:=xlAscending
+        .SetRange ws.Range("A2:T1048576")
+        .Header = x1Yes '
+        .Apply
+    End With
+
+    
+End Sub
+
+
+Sub OrdenaColuna2()
+
+    If ActiveSheet.AutoFilterMode Then
+        ActiveSheet.AutoFilterMode = False
+    End If
+
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets("01-Dados")
+    ws.Activate
+
+    With ws.Sort
+        .SortFields.Clear
+        .SortFields.Add Key:=ws.Range("E2:E1048576"), Order:=xlAscending
+        .SetRange ws.Range("A2:T1048576")
+        .Header = x1Yes '
+        .Apply
+    End With
+
+
+    If ActiveSheet.AutoFilterMode Then
+        ActiveSheet.AutoFilterMode = False
+    End If
+    
+
+    Dim faixa As Range
+    Set faixa = ActiveSheet.Range("A1:T1048576")
+
+
+    faixa.AutoFilter Field:=5, _
+                 Criteria1:="Fatura #*", _
+                 Operator:=xlOr, _
+                 Criteria2:="Relatório de despesas #*"
+
+
+
+End Sub
+
+Sub EncontrarSegundaLinhaVisivel()
+    Dim ws As Worksheet
+    Dim i As Long
+    Dim ultimaLinha As Long
+    Dim contadorVisiveis As Long
+    Dim segundaLinhaVisivel As Long
+
+    ' Define a planilha e encontra a última linha preenchida na coluna A
+    Set ws = ThisWorkbook.Sheets(1)  ' Alterar para a planilha desejada
+    ultimaLinha = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row  ' Última linha preenchida
+
+    i = 1  ' Começa na primeira linha
+    contadorVisiveis = 0  ' Inicia o contador de linhas visíveis
+
+    ' Loop While para encontrar a segunda linha visível
+    While i <= ultimaLinha
+        ' Verifica se a linha não está oculta
+        If Not ws.Rows(i).Hidden Then
+            contadorVisiveis = contadorVisiveis + 1  ' Incrementa o contador
+
+            ' Se for a segunda linha visível, armazena o número e sai do loop
+            If contadorVisiveis = 2 Then
+                segundaLinhaVisivel = i
+               ' Exit While
+            End If
+        End If
+        i = i + 1  ' Próxima linha
+    Wend
+
+    ' Verifica se encontrou a segunda linha visível
+    If segundaLinhaVisivel > 0 Then
+   '     MsgBox "A segunda linha visível é: " & segundaLinhaVisivel
+    Else
+        MsgBox "Não há duas linhas visíveis no intervalo."
+    End If
+    
+    SeparaDados (segundaLinhaVisivel)
+    
+End Sub
+
+
+
+Function SeparaDados(segundaLinhaVisivel As Integer) As String
+
+
+    Dim ws1, ws2 As Worksheet
+    Row1 = segundaLinhaVisivel
+    Row2 = 2
+    Set ws1 = ThisWorkbook.Sheets(1)
+    Set ws2 = ThisWorkbook.Sheets(2)
+    
+    While ws2.Cells(Row2, 1) <> ""
+        ValorProcurado = ws2.Cells(Row2, 1)
+        ValorEncontrado = ws1.Cells(Row1, 5)
+        While ValorProcurado <> ValorEncontrado And ValorProcurado <> ""
+            Row1 = Row1 + 1
+            ValorEncontrado = ws1.Cells(Row1, 5)
+        Wend
+        While ValorProcurado = ValorEncontrado
+            ws2.Cells(Row2, 2) = ws1.Cells(Row1, 2)
+            ws2.Cells(Row2, 3) = ws1.Cells(Row1, 11)
+            ws2.Cells(Row2, 4) = ws1.Cells(Row1, 6)
+            ws2.Cells(Row2, 5) = ws1.Cells(Row1, 7)
+            ws2.Cells(Row2, 6) = ws1.Cells(Row1, 8)
+            ws2.Cells(Row2, 7) = ws1.Cells(Row1, 9)
+            ws2.Cells(Row2, 8) = ws1.Cells(Row1, 12)
+            ws2.Cells(Row2, 9) = ws1.Cells(Row1, 13)
+            ws2.Cells(Row2, 10) = ws1.Cells(Row1, 10)
+            Row1 = Row1 + 1
+            ValorEncontrado = ws1.Cells(Row1, 5)
+            If ValorProcurado = ValorEncontrado Then
+'                ws2.Cells(Row2, 1).Select
+                Row2 = Row2 + 1
+                ws2.Rows(Row2).Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
+                
+'                ValorProcurado = ws2.Cells(Row2, 1)
+            Else
+                ValorProcurado = ws2.Cells(Row2, 1)
+            End If
+        Wend
+        Row1 = segundaLinhaVisivel
+        Row2 = Row2 + 1
+    Wend
+    
+
+End Function
+
+Sub Organizacao()
+
+Columns("A").Delete
+Columns("D").Delete
+Columns("N").Delete
+
+Columns("P").Cut
+Columns("H").Insert Shift:=xlToRight
+Columns("Q").Cut
+Columns("I").Insert Shift:=xlToRight
+
+
+End Sub
+
+Sub SegmentaDados()
+
+    If ActiveSheet.AutoFilterMode Then
+        ActiveSheet.AutoFilterMode = False
+    End If
+
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets("01-Dados")
+    ws.Activate
+
+    With ws.Sort
+        .SortFields.Clear
+        .SortFields.Add Key:=ws.Range("K2:K1048576"), Order:=xlAscending
+        .SetRange ws.Range("A2:Q1048576")
+        .Header = x1Yes '
+        .Apply
+    End With
+
+
+    If ActiveSheet.AutoFilterMode Then
+        ActiveSheet.AutoFilterMode = False
+    End If
+    
+
+    Dim faixa As Range
+    Set faixa = ActiveSheet.Range("A1:Q1048576")
+
+
+    faixa.AutoFilter Field:=11, _
+                 Criteria1:="Abrir"
+
+    Set wsDestino = ThisWorkbook.Sheets(ws.Index + 1)
+
+    ' Copia toda a planilha de origem
+    ws.Cells.Copy
+
+    ' Cola os dados na célula A1 da planilha de destino
+    wsDestino.Cells(1, 1).PasteSpecial Paste:=xlPasteAll
+
+    ' Limpa a área de transferência
+    Application.CutCopyMode = False
+    
+     If ActiveSheet.AutoFilterMode Then
+        ActiveSheet.AutoFilterMode = False
+    End If
+    
+
+ 
+    Set faixa = ActiveSheet.Range("A1:Q1048576")
+
+
+    faixa.AutoFilter Field:=11, _
+                 Criteria1:="Pago integralmente"
+
+    Set wsDestino = ThisWorkbook.Sheets(ws.Index + 2)
+
+    ' Copia toda a planilha de origem
+    ws.Cells.Copy
+
+    ' Cola os dados na célula A1 da planilha de destino
+    wsDestino.Cells(1, 1).PasteSpecial Paste:=xlPasteAll
+
+    ' Limpa a área de transferência
+    Application.CutCopyMode = False
+    
+         If ActiveSheet.AutoFilterMode Then
+        ActiveSheet.AutoFilterMode = False
+    End If
+    
+
+
+    Set faixa = ActiveSheet.Range("A1:Q1048576")
+
+
+    faixa.AutoFilter Field:=2, _
+                 Criteria1:="Relatório de despesas #*"
+
+    Set wsDestino = ThisWorkbook.Sheets(ws.Index + 3)
+
+    ' Copia toda a planilha de origem
+    ws.Cells.Copy
+
+    ' Cola os dados na célula A1 da planilha de destino
+    wsDestino.Cells(1, 1).PasteSpecial Paste:=xlPasteAll
+
+    ' Limpa a área de transferência
+    Application.CutCopyMode = False
+    
+    If ActiveSheet.AutoFilterMode Then
+        ActiveSheet.AutoFilterMode = False
+    End If
+    
+End Sub
